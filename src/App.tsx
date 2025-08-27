@@ -1,11 +1,286 @@
-import './App.css'
+import { useState } from "react";
+import "./App.css";
+import InputField from "./components/InputField";
+import SelectField from "./components/SelectField";
+import Table from "./components/Table";
+import type { IUser } from "./types/type";
+import { useForm, Controller, type SubmitHandler } from "react-hook-form";
+import { toast } from "react-toastify";
 
-function App() {
-  return (
-    <div>
-     <a href=""></a>
-    </div>
-  )
+interface IFormInput {
+  full_name: string;
+  email: string;
+  address: string;
+  city: string;
+  country: string;
+  state: string;
 }
 
-export default App
+function App() {
+  const [dataSource, setDataSource] = useState<IUser[] | null>([]);
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    defaultValues: {
+      full_name: "",
+      email: "",
+      address: "",
+      city: "",
+      country: "",
+      state: "",
+    },
+  });
+
+  const onSubmit: SubmitHandler<IFormInput> = (data) => {
+    const newItem = {
+      full_name: data.full_name,
+      email: data.email,
+      address: data.address,
+      city: data.city,
+      country: data.country,
+      state: data.state,
+    };
+    const newDataSource = [...(dataSource || []), newItem];
+    setDataSource(newDataSource as IUser[]);
+    toast.success("Add Successfully", {
+      position: "top-right",
+      autoClose: 5000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      progress: undefined,
+      theme: "light",
+    });
+  };
+
+
+  return (
+    <div className="min-h-screen p-6 bg-gray-100 flex-col items-center justify-center">
+      <div className="container max-w-screen-lg mx-auto">
+        <div>
+          <div className="bg-white rounded shadow-lg p-4 px-4 md:p-8 mb-6">
+            <div className="grid gap-4 gap-y-2 text-sm grid-cols-1 lg:grid-cols-3">
+              <div className="text-gray-600">
+                <p className="font-medium text-lg">Personal Details</p>
+                <p>Please fill out all the fields.</p>
+              </div>
+
+              <div className="lg:col-span-2">
+                <form action="" onSubmit={handleSubmit(onSubmit)}>
+                  <div className="grid gap-4 gap-y-2 text-sm grid-cols-1 md:grid-cols-5">
+                    {/* Full Name */}
+                    <div className="md:col-span-5">
+                      <Controller
+                        name="full_name"
+                        control={control}
+                        rules={{
+                          required: "This field is required.",
+                          maxLength: {
+                            value: 20,
+                            message: "Must be 20 characters or less.",
+                          },
+                          minLength: {
+                            value: 6,
+                            message: "Must be at least 6 characters.",
+                          },
+                        }}
+                        render={({ field }) => (
+                          <InputField
+                            id="full_name"
+                            label="Full Name"
+                            {...field}
+                          />
+                        )}
+                      />
+                      {errors && errors.full_name?.message && (
+                        <div className="text-red-900">
+                          {errors.full_name.message}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Email */}
+                    <div className="md:col-span-5">
+                      <Controller
+                        name="email"
+                        control={control}
+                        rules={{
+                          required: "This field is required.",
+                          maxLength: {
+                            value: 20,
+                            message: "Must be 20 characters or less.",
+                          },
+                          minLength: {
+                            value: 6,
+                            message: "Must be at least 6 characters.",
+                          },
+                          pattern: {
+                            value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                            message: "Invalid email address.",
+                          },
+                        }}
+                        render={({ field }) => (
+                          <InputField id="email" label="Email" {...field} />
+                        )}
+                      />
+                      {errors && errors.email?.message && (
+                        <div className="text-red-900">
+                          {errors.email.message}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Address */}
+                    <div className="md:col-span-3">
+                      <Controller
+                        name="address"
+                        control={control}
+                        rules={{
+                          required: "This field is required.",
+                          maxLength: {
+                            value: 150,
+                            message: "Must be 150 characters or less.",
+                          },
+                          minLength: {
+                            value: 2,
+                            message: "Must be at least 2 characters.",
+                          },
+                        }}
+                        render={({ field }) => (
+                          <InputField
+                            id="address"
+                            label="Address / Street"
+                            {...field}
+                          />
+                        )}
+                      />
+                      {errors && errors.address?.message && (
+                        <div className="text-red-900">
+                          {errors.address.message}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* City */}
+                    <div className="md:col-span-2">
+                      <Controller
+                        name="city"
+                        control={control}
+                        rules={{
+                          required: "This field is required.",
+                          maxLength: {
+                            value: 20,
+                            message: "Must be 20 characters or less.",
+                          },
+                          minLength: {
+                            value: 2,
+                            message: "Must be at least 2 characters.",
+                          },
+                        }}
+                        render={({ field }) => (
+                          <InputField id="city" label="City" {...field} />
+                        )}
+                      />
+                      {errors && errors.city?.message && (
+                        <div className="text-red-900">
+                          {errors.city.message}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Country */}
+                    <div className="md:col-span-2">
+                      <SelectField
+                        id="countries"
+                        label="Country / region"
+                        options={[
+                          { label: "United States", value: "US" },
+                          { label: "CANADA", value: "CA" },
+                          { label: "Viet Nam", value: "VN" },
+                        ]}
+                      />
+                    </div>
+
+                    {/* State */}
+                    <div className="md:col-span-2">
+                      <SelectField
+                        id="state"
+                        label="State / Province"
+                        options={[
+                          { label: "Phu Nhuan", value: "Phu nhuan" },
+                          { label: "Q1", value: "Q1" },
+                          { label: "Q2", value: "Q2" },
+                        ]}
+                      />
+                    </div>
+
+                    {/* Billing */}
+                    <div className="md:col-span-5">
+                      <div className="inline-flex items-center">
+                        <input
+                          type="checkbox"
+                          name="billing_same"
+                          id="billing_same"
+                          className="form-checkbox"
+                        />
+                        <label htmlFor="billing_same" className="ml-2">
+                          My billing address is different than above.
+                        </label>
+                      </div>
+                    </div>
+                    {/* Submit */}
+                    <div className="md:col-span-5 text-right">
+                      <div className="inline-flex items-end">
+                        <button
+                          type="submit"
+                          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                        >
+                          Submit
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="container max-w-screen-lg mx-auto w-full relative overflow-x-auto">
+        <Table
+          tableHeaders={[
+            "Full name",
+            "Email Adress",
+            "Address",
+            "City",
+            "Country",
+            "State",
+          ]}
+          dataSource={dataSource || []}
+          renderRow={(data: IUser) => {
+            return (
+              <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200">
+                <th
+                  scope="row"
+                  className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white"
+                >
+                  {data.full_name}
+                </th>
+                <td className="px-6 py-4">{data.email}</td>
+                <td className="px-6 py-4">{data.address}</td>
+                <td className="px-6 py-4">{data.city}</td>
+                <td className="px-6 py-4">{data.country}</td>
+                <td className="px-6 py-4">{data.state}</td>
+              </tr>
+            );
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+export default App;
