@@ -6,6 +6,7 @@ import Table from "./components/Table";
 import type { IUser } from "./types/type";
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
 import { toast } from "react-toastify";
+import CheckBoxField from "./components/CheckBoxField";
 
 interface IFormInput {
   full_name: string;
@@ -14,6 +15,7 @@ interface IFormInput {
   city: string;
   country: string;
   state: string;
+  billing: boolean;
 }
 
 function App() {
@@ -21,6 +23,7 @@ function App() {
   const {
     control,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm({
     defaultValues: {
@@ -30,6 +33,7 @@ function App() {
       city: "",
       country: "",
       state: "",
+      billing: false,
     },
   });
 
@@ -44,6 +48,7 @@ function App() {
     };
     const newDataSource = [...(dataSource || []), newItem];
     setDataSource(newDataSource as IUser[]);
+    reset();
     toast.success("Add Successfully", {
       position: "top-right",
       autoClose: 5000,
@@ -55,7 +60,6 @@ function App() {
       theme: "light",
     });
   };
-
 
   return (
     <div className="min-h-screen p-6 bg-gray-100 flex-col items-center justify-center">
@@ -92,6 +96,7 @@ function App() {
                             id="full_name"
                             label="Full Name"
                             {...field}
+                          
                           />
                         )}
                       />
@@ -110,8 +115,8 @@ function App() {
                         rules={{
                           required: "This field is required.",
                           maxLength: {
-                            value: 20,
-                            message: "Must be 20 characters or less.",
+                            value: 50,
+                            message: "Must be 50 characters or less.",
                           },
                           minLength: {
                             value: 6,
@@ -193,42 +198,74 @@ function App() {
 
                     {/* Country */}
                     <div className="md:col-span-2">
-                      <SelectField
-                        id="countries"
-                        label="Country / region"
-                        options={[
-                          { label: "United States", value: "US" },
-                          { label: "CANADA", value: "CA" },
-                          { label: "Viet Nam", value: "VN" },
-                        ]}
+                      <Controller
+                        name="country"
+                        control={control}
+                        rules={{
+                          required: "This field is required.",
+                        }}
+                        render={({ field }) => (
+                          <SelectField
+                            {...field}
+                            id="country"
+                            label="Country / region"
+                            options={[
+                              { label: "United States", value: "US" },
+                              { label: "CANADA", value: "CA" },
+                              { label: "Viet Nam", value: "VN" },
+                            ]}
+                          />
+                        )}
                       />
+                      {errors && errors.country?.message && (
+                        <div className="text-red-900">
+                          {errors.country?.message}
+                        </div>
+                      )}
                     </div>
 
                     {/* State */}
                     <div className="md:col-span-2">
-                      <SelectField
-                        id="state"
-                        label="State / Province"
-                        options={[
-                          { label: "Phu Nhuan", value: "Phu nhuan" },
-                          { label: "Q1", value: "Q1" },
-                          { label: "Q2", value: "Q2" },
-                        ]}
+                      <Controller
+                        name="state"
+                        control={control}
+                        rules={{
+                          required: "This field is required.",
+                        }}
+                        render={({ field }) => (
+                          <SelectField
+                            {...field}
+                            id="state"
+                            label="State / Province"
+                            options={[
+                              { label: "Phu Nhuan", value: "Phu nhuan" },
+                              { label: "Q1", value: "Q1" },
+                              { label: "Q2", value: "Q2" },
+                            ]}
+                          />
+                        )}
                       />
+                      {errors && errors.state?.message && (
+                        <div className="text-red-900">
+                          {errors.state?.message}
+                        </div>
+                      )}
                     </div>
 
                     {/* Billing */}
                     <div className="md:col-span-5">
-                      <div className="inline-flex items-center">
-                        <input
-                          type="checkbox"
-                          name="billing_same"
-                          id="billing_same"
-                          className="form-checkbox"
+                      <div className="">
+                        <Controller
+                          name="billing"
+                          control={control}
+                          render={({ field }) => (
+                            <CheckBoxField
+                              id="billing"
+                              label="My billing address is different than above."
+                              {...field}
+                            />
+                          )}
                         />
-                        <label htmlFor="billing_same" className="ml-2">
-                          My billing address is different than above.
-                        </label>
                       </div>
                     </div>
                     {/* Submit */}
