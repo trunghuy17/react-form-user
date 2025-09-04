@@ -39,35 +39,77 @@ function App() {
     },
   });
 
-  const onSubmit: SubmitHandler<IFormInput> = (data) => {
+  const onSubmit: SubmitHandler<IFormInput> = async (data) => {
     //Mode: add user
-    const newItem = {
-      id: Date.now(),
-      full_name: data.full_name,
-      email: data.email,
-      address: data.address,
-      city: data.city,
-      country: data.country,
-      state: data.state,
-    };
-    if (!userId) {
-      const newDataSource = [...(dataSource || []), newItem];
-      setDataSource(newDataSource as IUser[]);
-      reset();
 
-      toast.success("Add Successfully", {
-        position: "top-right",
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-        theme: "light",
-      });
+    if (!userId) {
+      try {
+        const newItem = {
+          id: Date.now(),
+          full_name: data.full_name,
+          email: data.email,
+          address: data.address,
+          city: data.city,
+          country: data.country,
+          state: data.state,
+        };
+
+        const bodyData = {
+          data: {
+            first_name: data.full_name,
+            last_name: data.full_name,
+            email: data.email,
+            address: data.address,
+            city: data.city,
+            country: data.country,
+            state: data.state,
+            role: "admin",
+            password: "123456",
+          },
+        };
+
+        //call api to create new user
+        await fetch(
+          "https://tony-auth-express-vdee.vercel.app/api/user/signup",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(bodyData),
+          }
+        );
+
+        const newDataSource = [...(dataSource || []), newItem];
+        setDataSource(newDataSource as IUser[]);
+        reset();
+
+        toast.success("Add Successfully", {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "light",
+        });
+      } catch (err) {
+        toast.success("Add user fail", {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "light",
+        });
+      }
       return;
     }
 
+    //Mode: edit user
     if (!dataSource) return;
     const indexUser = dataSource?.findIndex((item) => item.id == userId);
     if (indexUser === -1) return;
@@ -93,29 +135,13 @@ function App() {
     });
   };
 
-  function handleDelete(id: number) {
-    if (!dataSource) return;
-    const newUsers = dataSource?.filter((item) => item.id !== id);
-    setDataSource(newUsers);
-
-    toast.success("Delete Successfully", {
-      position: "top-right",
-      autoClose: 5000,
-      hideProgressBar: false,
-      closeOnClick: true,
-      pauseOnHover: true,
-      draggable: true,
-      progress: undefined,
-      theme: "light",
-    });
-  }
-
   function handleEdit(id: number) {
     if (!dataSource) return;
     setUserId(id);
     const user = dataSource.find((item) => item.id == id);
     if (!user) return;
 
+    // using setValue from react-hook-form to put value to fleid to edit
     setValue("full_name", user.full_name);
     setValue("email", user.email);
     setValue("address", user.address);
@@ -123,6 +149,56 @@ function App() {
     setValue("country", user.country);
     setValue("state", user.state);
     setValue("billing", user.billing);
+  }
+
+  async function handleDelete(id: number) {
+    if (!dataSource) return;
+    try {
+      const response = await fetch(
+        `https://tony-auth-express-vdee.vercel.app/api/user/${id}`,
+        {
+          method: "DELETE",
+        }
+      );
+      const data = await response.json();
+      if (!data.isSuccess) {
+        toast.error("Can't delete ", {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "light",
+        });
+        return;
+      }
+      const newUsers = dataSource.filter((item) => item.id !== id);
+      setDataSource(newUsers);
+
+      toast.success("Delete Successfully", {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "light",
+      });
+    } catch (err) {
+      toast.success("Can't delete ", {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "light",
+      });
+    }
   }
 
   return (
