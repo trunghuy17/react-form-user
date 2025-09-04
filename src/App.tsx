@@ -20,10 +20,12 @@ interface IFormInput {
 
 function App() {
   const [dataSource, setDataSource] = useState<IUser[] | null>([]);
+  const [userId, setUserId] = useState<number | null>(null);
   const {
     control,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors },
   } = useForm({
     defaultValues: {
@@ -38,7 +40,9 @@ function App() {
   });
 
   const onSubmit: SubmitHandler<IFormInput> = (data) => {
+    //Mode: add user
     const newItem = {
+      id: Date.now(),
       full_name: data.full_name,
       email: data.email,
       address: data.address,
@@ -46,10 +50,38 @@ function App() {
       country: data.country,
       state: data.state,
     };
-    const newDataSource = [...(dataSource || []), newItem];
-    setDataSource(newDataSource as IUser[]);
+    if (!userId) {
+      const newDataSource = [...(dataSource || []), newItem];
+      setDataSource(newDataSource as IUser[]);
+      reset();
+
+      toast.success("Add Successfully", {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "light",
+      });
+      return;
+    }
+
+    if (!dataSource) return;
+    const indexUser = dataSource?.findIndex((item) => item.id == userId);
+    if (indexUser === -1) return;
+    dataSource[indexUser].full_name = data.full_name;
+    dataSource[indexUser].email = data.email;
+    dataSource[indexUser].address = data.address;
+    dataSource[indexUser].city = data.city;
+    dataSource[indexUser].country = data.country;
+    dataSource[indexUser].state = data.state;
+    dataSource[indexUser].billing = data.billing;
+    setDataSource(dataSource as IUser[]);
     reset();
-    toast.success("Add Successfully", {
+
+    toast.success("Update Successfully", {
       position: "top-right",
       autoClose: 5000,
       hideProgressBar: false,
@@ -60,6 +92,38 @@ function App() {
       theme: "light",
     });
   };
+
+  function handleDelete(id: number) {
+    if (!dataSource) return;
+    const newUsers = dataSource?.filter((item) => item.id !== id);
+    setDataSource(newUsers);
+
+    toast.success("Delete Successfully", {
+      position: "top-right",
+      autoClose: 5000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      progress: undefined,
+      theme: "light",
+    });
+  }
+
+  function handleEdit(id: number) {
+    if (!dataSource) return;
+    setUserId(id);
+    const user = dataSource.find((item) => item.id == id);
+    if (!user) return;
+
+    setValue("full_name", user.full_name);
+    setValue("email", user.email);
+    setValue("address", user.address);
+    setValue("city", user.city);
+    setValue("country", user.country);
+    setValue("state", user.state);
+    setValue("billing", user.billing);
+  }
 
   return (
     <div className="min-h-screen p-6 bg-gray-100 flex-col items-center justify-center">
@@ -96,7 +160,6 @@ function App() {
                             id="full_name"
                             label="Full Name"
                             {...field}
-                          
                           />
                         )}
                       />
@@ -286,6 +349,8 @@ function App() {
           </div>
         </div>
       </div>
+
+      {/*  Table render information user  */}
       <div className="container max-w-screen-lg mx-auto w-full relative overflow-x-auto">
         <Table
           tableHeaders={[
@@ -295,6 +360,7 @@ function App() {
             "City",
             "Country",
             "State",
+            "Action",
           ]}
           dataSource={dataSource || []}
           renderRow={(data: IUser) => {
@@ -311,6 +377,24 @@ function App() {
                 <td className="px-6 py-4">{data.city}</td>
                 <td className="px-6 py-4">{data.country}</td>
                 <td className="px-6 py-4">{data.state}</td>
+                <td className="px-6 py-4">
+                  <div className="flex">
+                    <button
+                      type="button"
+                      className="text-white bg-green-700 hover:bg-green-800 focus:outline-none focus:ring-4 focus:ring-green-300 font-medium rounded-full text-sm px-2 py-1 text-center me-2 mb-2 dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800"
+                      onClick={() => handleEdit(data.id)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      className="text-white bg-red-700 hover:bg-red-800 focus:outline-none focus:ring-4 focus:ring-red-300 font-medium rounded-full text-sm px-2 py-1 text-center me-2 mb-2 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900"
+                      onClick={() => handleDelete(data.id)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </td>
               </tr>
             );
           }}
