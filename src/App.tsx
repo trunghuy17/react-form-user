@@ -27,6 +27,7 @@ export interface IMetadata {
 }
 
 function App() {
+  const [refreshTable, setRefreshTable] = useState(false);
   const [dataSource, setDataSource] = useState<IUser[] | null>([]);
   const [userId, setUserId] = useState<string | null>("");
   const [metadata, setMetadata] = useState<IMetadata>({
@@ -81,7 +82,7 @@ function App() {
       });
     }
     fetchUser();
-  }, []);
+  }, [refreshTable]);
 
   const onNextPage = () => {
     setMetadata((prevState) => {
@@ -131,7 +132,7 @@ function App() {
           },
         };
         // call api to create new user
-        const res = await fetch(
+        await fetch(
           "https://tony-auth-express-vdee.vercel.app/api/user/signup",
           {
             method: "POST",
@@ -141,16 +142,9 @@ function App() {
             body: JSON.stringify(bodyData),
           }
         );
-        // const newDatasource = [...(dataSource || []), newItem];
-        // setDataSource(newDatasource as IUser[]);
-        // reset();
-
-        const result = await res.json();
-        if (!res.ok) throw new Error(result.message || "Signup failed");
-
-        const createdUser = result.data; 
-
-        setDataSource([...(dataSource || []), createdUser]);
+        const newDatasource = [...(dataSource || []), newItem];
+        setDataSource(newDatasource as IUser[]);
+        setRefreshTable((prev) => !prev); 
         reset();
 
         toast.success("Add Successfully", {
