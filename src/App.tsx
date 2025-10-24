@@ -1,26 +1,39 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "./App.css";
 import InputField from "./components/InputField";
 import SelectField from "./components/SelectField";
-import Table from "./components/Table";
 import type { IUser } from "./types/type";
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
 import { toast } from "react-toastify";
 import CheckBoxField from "./components/CheckBoxField";
+import UserList from "./components/UserList";
 
 interface IFormInput {
-  full_name: string;
+  first_name: string;
+  last_name: string;
   email: string;
   address: string;
   city: string;
   country: string;
   state: string;
   billing: boolean;
+  role: string;
+}
+
+export interface IMetadata {
+  limit: number;
+  page: number;
+  total: number;
 }
 
 function App() {
   const [dataSource, setDataSource] = useState<IUser[] | null>([]);
-  const [userId, setUserId] = useState<number | null>(null);
+  const [userId, setUserId] = useState<string | null>("");
+  const [metadata, setMetadata] = useState<IMetadata>({
+    limit: 0,
+    page: 1,
+    total: 0,
+  });
   const {
     control,
     handleSubmit,
@@ -29,47 +42,96 @@ function App() {
     formState: { errors },
   } = useForm({
     defaultValues: {
-      full_name: "",
+      first_name: "",
+      last_name: "",
       email: "",
       address: "",
       city: "",
       country: "",
       state: "",
+      role: "",
       billing: false,
     },
   });
 
-  const onSubmit: SubmitHandler<IFormInput> = async (data) => {
-    //Mode: add user
+  useEffect(() => {
+    async function fetchUser() {
+      const res = await fetch(
+        "https://tony-auth-express-vdee.vercel.app/api/user?page=1&limit=1000"
+      );
+      const data = await res.json();
+      const users = data.data.map((item: IUser) => {
+        return {
+          ...item,
+          first_name: item.first_name,
+          last_name: item.last_name,
+          address: item.address,
+          email: item.email,
+          city: item.city,
+          country: item.country,
+          state: item.state,
+          role: item.role,
+        };
+      });
+      setDataSource(users);
+      setMetadata({
+        limit: data.limit,
+        page: data.page,
+        total: data.total,
+      });
+    }
+    fetchUser();
+  }, []);
 
+  const onNextPage = () => {
+    setMetadata((prevState) => {
+      return {
+        ...prevState,
+        page: (prevState?.page || 0) + 1,
+      };
+    });
+  };
+
+  const onPrevPage = () => {
+    setMetadata((prevState) => {
+      return {
+        ...prevState,
+        page: (prevState?.page || 0) - 1,
+      };
+    });
+  };
+
+  const onSubmit: SubmitHandler<IFormInput> = async (data) => {
+    // mode: add
     if (!userId) {
       try {
         const newItem = {
           id: Date.now(),
-          full_name: data.full_name,
+          first_name: data.first_name,
+          last_name: data.last_name,
           email: data.email,
           address: data.address,
           city: data.city,
           country: data.country,
           state: data.state,
+          role: data.role,
+          password: "123456",
         };
-
         const bodyData = {
           data: {
-            first_name: data.full_name,
-            last_name: data.full_name,
+            first_name: data.first_name,
+            last_name: data.last_name,
             email: data.email,
+            role: data.role,
+            state: data.state,
+            country: data.country,
             address: data.address,
             city: data.city,
-            country: data.country,
-            state: data.state,
-            role: "admin",
             password: "123456",
           },
         };
-
-        //call api to create new user
-        await fetch(
+        // call api to create new user
+        const res = await fetch(
           "https://tony-auth-express-vdee.vercel.app/api/user/signup",
           {
             method: "POST",
@@ -79,9 +141,16 @@ function App() {
             body: JSON.stringify(bodyData),
           }
         );
+        // const newDatasource = [...(dataSource || []), newItem];
+        // setDataSource(newDatasource as IUser[]);
+        // reset();
 
-        const newDataSource = [...(dataSource || []), newItem];
-        setDataSource(newDataSource as IUser[]);
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.message || "Signup failed");
+
+        const createdUser = result.data; 
+
+        setDataSource([...(dataSource || []), createdUser]);
         reset();
 
         toast.success("Add Successfully", {
@@ -89,37 +158,39 @@ function App() {
           autoClose: 5000,
           hideProgressBar: false,
           closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          progress: undefined,
+          pauseOnHover: false,
           theme: "light",
         });
       } catch (err) {
-        toast.success("Add user fail", {
+        toast.error("Can not add new item", {
           position: "top-right",
           autoClose: 5000,
           hideProgressBar: false,
           closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          progress: undefined,
+          pauseOnHover: false,
           theme: "light",
         });
       }
+
       return;
     }
 
-    //Mode: edit user
     if (!dataSource) return;
-    const indexUser = dataSource?.findIndex((item) => item.id == userId);
+
+    // mode: edit
+    const indexUser = dataSource.findIndex((item) => item._id === userId);
+
     if (indexUser === -1) return;
-    dataSource[indexUser].full_name = data.full_name;
+    dataSource[indexUser].first_name = data.first_name;
+    dataSource[indexUser].last_name = data.last_name;
     dataSource[indexUser].email = data.email;
     dataSource[indexUser].address = data.address;
     dataSource[indexUser].city = data.city;
     dataSource[indexUser].country = data.country;
     dataSource[indexUser].state = data.state;
+    dataSource[indexUser].role = data.role;
     dataSource[indexUser].billing = data.billing;
+
     setDataSource(dataSource as IUser[]);
     reset();
 
@@ -128,31 +199,34 @@ function App() {
       autoClose: 5000,
       hideProgressBar: false,
       closeOnClick: true,
-      pauseOnHover: true,
-      draggable: true,
-      progress: undefined,
+      pauseOnHover: false,
       theme: "light",
     });
   };
 
-  function handleEdit(id: number) {
+  function handleEdit(id: string) {
+    console.log("Edit ID:", id);
     if (!dataSource) return;
+
     setUserId(id);
-    const user = dataSource.find((item) => item.id == id);
+
+    const user = dataSource.find((item) => item.id === id);
     if (!user) return;
 
-    // using setValue from react-hook-form to put value to fleid to edit
-    setValue("full_name", user.full_name);
+    setValue("first_name", user.first_name);
+    setValue("last_name", user.last_name);
     setValue("email", user.email);
     setValue("address", user.address);
     setValue("city", user.city);
     setValue("country", user.country);
     setValue("state", user.state);
+    setValue("role", user.role);
     setValue("billing", user.billing);
   }
 
-  async function handleDelete(id: number) {
+  async function handleDelete(id: string) {
     if (!dataSource) return;
+
     try {
       const response = await fetch(
         `https://tony-auth-express-vdee.vercel.app/api/user/${id}`,
@@ -161,20 +235,19 @@ function App() {
         }
       );
       const data = await response.json();
-      if (!data.isSuccess) {
-        toast.error("Can't delete ", {
+
+      if (!data.isSucess) {
+        toast.error("Can not delete", {
           position: "top-right",
           autoClose: 5000,
           hideProgressBar: false,
           closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          progress: undefined,
+          pauseOnHover: false,
           theme: "light",
         });
         return;
       }
-      const newUsers = dataSource.filter((item) => item.id !== id);
+      const newUsers = dataSource.filter((item) => item._id !== id);
       setDataSource(newUsers);
 
       toast.success("Delete Successfully", {
@@ -182,20 +255,16 @@ function App() {
         autoClose: 5000,
         hideProgressBar: false,
         closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
+        pauseOnHover: false,
         theme: "light",
       });
     } catch (err) {
-      toast.success("Can't delete ", {
+      toast.error("Can not delete", {
         position: "top-right",
         autoClose: 5000,
         hideProgressBar: false,
         closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
+        pauseOnHover: false,
         theme: "light",
       });
     }
@@ -215,10 +284,9 @@ function App() {
               <div className="lg:col-span-2">
                 <form action="" onSubmit={handleSubmit(onSubmit)}>
                   <div className="grid gap-4 gap-y-2 text-sm grid-cols-1 md:grid-cols-5">
-                    {/* Full Name */}
-                    <div className="md:col-span-5">
+                    <div className="md:col-span-2">
                       <Controller
-                        name="full_name"
+                        name="first_name"
                         control={control}
                         rules={{
                           required: "This field is required.",
@@ -233,15 +301,44 @@ function App() {
                         }}
                         render={({ field }) => (
                           <InputField
-                            id="full_name"
-                            label="Full Name"
+                            id="first_name"
+                            label="First name"
                             {...field}
                           />
                         )}
                       />
-                      {errors && errors.full_name?.message && (
+                      {errors && errors.first_name?.message && (
                         <div className="text-red-900">
-                          {errors.full_name.message}
+                          {errors.first_name.message}
+                        </div>
+                      )}
+                    </div>
+                    <div className="md:col-span-3">
+                      <Controller
+                        name="last_name"
+                        control={control}
+                        rules={{
+                          required: "This field is required.",
+                          maxLength: {
+                            value: 20,
+                            message: "Must be 20 characters or less.",
+                          },
+                          minLength: {
+                            value: 6,
+                            message: "Must be at least 6 characters.",
+                          },
+                        }}
+                        render={({ field }) => (
+                          <InputField
+                            id="last_name"
+                            label="Last name"
+                            {...field}
+                          />
+                        )}
+                      />
+                      {errors && errors.last_name?.message && (
+                        <div className="text-red-900">
+                          {errors.last_name.message}
                         </div>
                       )}
                     </div>
@@ -391,6 +488,34 @@ function App() {
                       )}
                     </div>
 
+                    {/* ROle */}
+                    <div className="md:col-span-2">
+                      <Controller
+                        name="role"
+                        control={control}
+                        rules={{
+                          required: "This field is required.",
+                        }}
+                        render={({ field }) => (
+                          <SelectField
+                            {...field}
+                            id="role"
+                            label="Role"
+                            options={[
+                              { label: "Admin", value: "admin" },
+                              { label: "Operator", value: "operator" },
+                              { label: "Member", value: "member" },
+                            ]}
+                          />
+                        )}
+                      />
+                      {errors && errors.role?.message && (
+                        <div className="text-red-900">
+                          {errors.role?.message}
+                        </div>
+                      )}
+                    </div>
+
                     {/* Billing */}
                     <div className="md:col-span-5">
                       <div className="">
@@ -428,53 +553,16 @@ function App() {
 
       {/*  Table render information user  */}
       <div className="container max-w-screen-lg mx-auto w-full relative overflow-x-auto">
-        <Table
-          tableHeaders={[
-            "Full name",
-            "Email Adress",
-            "Address",
-            "City",
-            "Country",
-            "State",
-            "Action",
-          ]}
-          dataSource={dataSource || []}
-          renderRow={(data: IUser) => {
-            return (
-              <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200">
-                <th
-                  scope="row"
-                  className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white"
-                >
-                  {data.full_name}
-                </th>
-                <td className="px-6 py-4">{data.email}</td>
-                <td className="px-6 py-4">{data.address}</td>
-                <td className="px-6 py-4">{data.city}</td>
-                <td className="px-6 py-4">{data.country}</td>
-                <td className="px-6 py-4">{data.state}</td>
-                <td className="px-6 py-4">
-                  <div className="flex">
-                    <button
-                      type="button"
-                      className="text-white bg-green-700 hover:bg-green-800 focus:outline-none focus:ring-4 focus:ring-green-300 font-medium rounded-full text-sm px-2 py-1 text-center me-2 mb-2 dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800"
-                      onClick={() => handleEdit(data.id)}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      className="text-white bg-red-700 hover:bg-red-800 focus:outline-none focus:ring-4 focus:ring-red-300 font-medium rounded-full text-sm px-2 py-1 text-center me-2 mb-2 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900"
-                      onClick={() => handleDelete(data.id)}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            );
-          }}
-        />
+        <div className="container max-w-screen-lg mx-auto w-full relative overflow-x-auto">
+          <UserList
+            dataSource={dataSource || []}
+            metadata={metadata}
+            handleDelete={handleDelete}
+            handleEdit={handleEdit}
+            onNextPage={onNextPage}
+            onPrevPage={onPrevPage}
+          />
+        </div>
       </div>
     </div>
   );
